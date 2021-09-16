@@ -1,6 +1,7 @@
 import { BaseView } from "../../modules/core/BaseView";
 import { ScreenUtilController } from "../../modules/screenutility/ScreenUtilController";
 import { Assets } from "../../collections/AssetGameplay";
+import { Audios } from "../../collections/AssetAudio";
 import { FontAsset } from "../../collections/AssetFont";
 import { ComponentService } from "../../modules/services/ComponentService";
 import { ClickableComponent } from "../../components/ClickableComponent";
@@ -11,7 +12,7 @@ import { DisplayOriginalRatioComponent } from "../../components/transform/Displa
 import { ClickTweenScaleComponent } from "../../components/ClickTweenScaleComponent";
 
 export const enum EventNames {
-	onPlaySFXClick = "onPlaySFXClick",
+	onPlaySFX = "onPlaySFX",
 	onClickLogo = "onClickLogo",
 	onClickRestart = "onClickRestart",
 	onCreateFinish = "onCreateFinish",
@@ -60,31 +61,46 @@ export class GameplaySceneView implements BaseView {
 		const image = this._scene.add.image(centerX, centerY * 0.5, Assets.phaser_logo.key);
 		image.setData(props.INTERNAL_COUNTER, 0);
 
-		this._components.addComponent(image, new PreferredDisplaySizeComponent("MIN", width * 0.3, height * 0.3));
-		this._components.addComponent(image, new DisplayOriginalRatioComponent());
-		this._components.addComponent(image, new ClickTweenScaleComponent(this._scene.tweens, () => {
+		const cTS = new ClickTweenScaleComponent(this._scene, () => {
 			this.event.emit(EventNames.onClickLogo, image.getData(props.INTERNAL_COUNTER));
-		}));
-		this._components.addComponent(image, new ClickableComponent(() => {
-			(this._components.findComponent(image, ClickTweenScaleComponent) as ClickTweenScaleComponent).play();
-			const internalCounter = image.getData(props.INTERNAL_COUNTER) as number;
-			image.setData(props.INTERNAL_COUNTER, internalCounter + 1);
-		}));
+			console.log("Second tween scale!");
+		});
+		this._components.addComponents(image, [
+			new PreferredDisplaySizeComponent("MIN", width * 0.3, height * 0.3),
+			new ClickTweenScaleComponent(this._scene, () => {
+				console.log("First tween scale!");				
+			}),
+			new DisplayOriginalRatioComponent(),
+			cTS,
+			new ClickableComponent(() => {
+				const clickTweenScale = this._components.findComponents(image, ClickTweenScaleComponent) as ClickTweenScaleComponent[];
+				console.log(clickTweenScale);
+
+				const internalCounter = image.getData(props.INTERNAL_COUNTER) as number;
+				image.setData(props.INTERNAL_COUNTER, internalCounter + 1);
+
+				clickTweenScale.forEach((item) => item.play());
+			}),
+		]);
+
+		this._components.removeComponent(image, cTS.getId());
 
 		const targetComponent = this._components.findComponent(image, DisplayOriginalRatioComponent) as DisplayOriginalRatioComponent;
 		const image2 = this._scene.add.image(centerX, height * 0.825, Assets.phaser_logo.key);
-		this._components.addComponent(image2, new ScaleToDisplaySizeComponent(targetComponent.displayToOriginalHeightRatio));
-		this._components.addComponent(image2, new DisplayOriginalRatioComponent());
-		this._components.addComponent(image2, new ClickTweenScaleComponent(this._scene.tweens, () => {
-			if (!this._components.findComponent(image2, ResetPositionComponent)) {
-				this._components.addComponent(image2, new ResetPositionComponent());
-			}
-			this._components.removeComponent(image, ClickableComponent);
-			this._components.removeComponent(image2, ClickTweenScaleComponent);
-		}));
-		this._components.addComponent(image2, new ClickableComponent(() => {
-			(this._components.findComponent(image2, ClickTweenScaleComponent) as ClickTweenScaleComponent)?.play();
-		}));
+		this._components.addComponents(image2, [
+			new ScaleToDisplaySizeComponent(targetComponent.displayToOriginalHeightRatio * 1.45),
+			new DisplayOriginalRatioComponent(),
+			new ClickTweenScaleComponent(this._scene, () => {
+				if (!this._components.findComponent(image2, ResetPositionComponent)) {
+					this._components.addComponent(image2, new ResetPositionComponent());
+				}
+				this._components.removeComponent(image, ClickableComponent);
+				this._components.removeComponent(image2, ClickTweenScaleComponent);
+			}),
+			new ClickableComponent(() => {
+				(this._components.findComponent(image2, ClickTweenScaleComponent) as ClickTweenScaleComponent)?.play();
+			})
+		]);
 	}
 
 	private createRestartButton (): void {
@@ -108,11 +124,13 @@ export class GameplaySceneView implements BaseView {
 		generateTexture();
 
 		const button = this._scene.add.sprite(centerX, centerY, textureKey);
-		this._components.addComponent(button, new ScaleToDisplaySizeComponent(screenPercentage * 1.45));
-		this._components.addComponent(button, new DisplayOriginalRatioComponent());
-		this._components.addComponent(button, new ClickTweenScaleComponent(this._scene.tweens, () => {
-			this.event.emit(EventNames.onClickRestart);
-		}));
+		this._components.addComponents(button, [
+			new ScaleToDisplaySizeComponent(screenPercentage * 1.45),
+			new DisplayOriginalRatioComponent(),
+			new ClickTweenScaleComponent(this._scene, () => {
+				this.event.emit(EventNames.onClickRestart);
+			}),
+		]);
 
 		const buttonRatioComponent = this._components.findComponent(button, DisplayOriginalRatioComponent) as DisplayOriginalRatioComponent;
 		const labelContent = "RESTART";
@@ -123,14 +141,14 @@ export class GameplaySceneView implements BaseView {
 		};
 		const label = this._scene.add.text(button.x, button.y, labelContent, style);
 		label.setOrigin(0.5);
-
-		this._components.addComponent(label, new ClickTweenScaleComponent(this._scene.tweens));
-
-		this._components.addComponent(button, new ClickableComponent(() => {
-			(this._components.findComponent(label, ClickTweenScaleComponent) as ClickTweenScaleComponent).play();
-			(this._components.findComponent(button, ClickTweenScaleComponent) as ClickTweenScaleComponent).play();
-			this.event.emit(EventNames.onPlaySFXClick);
-		}));
+		this._components.addComponents(label, [
+			new ClickTweenScaleComponent(this._scene),
+			new ClickableComponent(() => {
+				(this._components.findComponent(label, ClickTweenScaleComponent) as ClickTweenScaleComponent).play();
+				(this._components.findComponent(button, ClickTweenScaleComponent) as ClickTweenScaleComponent).play();
+				this.event.emit(EventNames.onPlaySFX, Audios.sfx_click.key);
+			})
+		]);
 	}
 
 	destroy (): void {

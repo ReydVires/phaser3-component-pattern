@@ -1,10 +1,11 @@
-import short from "short-uuid";
+import shortUUID from "short-uuid";
 
 export type Constructor<T extends {} = {}> = new (...args: any[]) => T
 
 export interface Component {
 
 	init (go: Phaser.GameObjects.GameObject): void;
+	getId: () => string;
 	awake?: () => void;
 	start?: () => void;
 	update?: (dt: number) => void;
@@ -19,7 +20,7 @@ export class ComponentService {
 
 	addComponent (go: Phaser.GameObjects.GameObject, component: Component): void {
 		if (!go.name) {
-			go.setName(go.type + "_" + short.generate());
+			go.setName(go.type + "_" + shortUUID.generate());
 		}
 
 		if (!this._componentsByGameObject.has(go.name)) {
@@ -37,15 +38,30 @@ export class ComponentService {
 		}
 	}
 
+	addComponents (go: Phaser.GameObjects.GameObject, components: Component[]): void {
+		for (let index = 0; index < components.length; index++) {
+			const component = components[index];
+			this.addComponent(go, component);
+		}
+	}
+
 	findComponent<ComponentType> (go: Phaser.GameObjects.GameObject, componentType: Constructor<ComponentType>): Component | null {
 		const components = this._componentsByGameObject.get(go.name);
 		if (!components) return null;
 		return (components.find((component) => component instanceof componentType) ?? null);
 	}
 
-	removeComponent<ComponentType> (go: Phaser.GameObjects.GameObject, componentType: Constructor<ComponentType>): boolean {
+	findComponents<ComponentType> (go: Phaser.GameObjects.GameObject, componentType: Constructor<ComponentType>): Component[] {
 		const components = this._componentsByGameObject.get(go.name);
-		const targetComponent = components?.find((component) => component instanceof componentType);
+		if (!components) return [];
+		return (components.filter((component) => component instanceof componentType));
+	}
+
+	removeComponent<ComponentType> (go: Phaser.GameObjects.GameObject, componentType: Constructor<ComponentType> | string): boolean {
+		const components = this._componentsByGameObject.get(go.name);
+		const targetComponent = (typeof componentType === "string")
+			? components?.find((component) => component.getId() === componentType)
+			: components?.find((component) => component instanceof componentType);
 		if (components && targetComponent) {
 			if (targetComponent.destroy) targetComponent.destroy();
 			this._componentsByGameObject.set(go.name, components.filter((component) => component != targetComponent));

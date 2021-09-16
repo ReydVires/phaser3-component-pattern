@@ -1,3 +1,4 @@
+import shortUUID from "short-uuid";
 import { Component } from "../../modules/services/ComponentService";
 
 type GameObject = (Phaser.GameObjects.GameObject & Phaser.GameObjects.Components.ComputedSize & Phaser.GameObjects.Components.Transform) | Phaser.GameObjects.Rectangle
@@ -12,6 +13,7 @@ type DisplaySizeRef = {
 export class PreferredDisplaySizeComponent implements Component {
 
 	private _gameObject: GameObject;
+	private _id: string;
 	private _type: PreferredSizeType;
 	private _displaSizeRef: DisplaySizeRef;
 
@@ -21,7 +23,12 @@ export class PreferredDisplaySizeComponent implements Component {
 	}
 
 	init (go: GameObject): void {
+		this._id = go.name + "_" + shortUUID.generate();
 		this._gameObject = go;
+	}
+
+	getId (): string {
+		return this._id;
 	}
 
 	awake (): void {

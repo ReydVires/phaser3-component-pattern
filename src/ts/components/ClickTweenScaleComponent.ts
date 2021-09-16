@@ -1,3 +1,4 @@
+import shortUUID from "short-uuid";
 import { Component } from "../modules/services/ComponentService";
 
 type GameObject = Phaser.GameObjects.Image | Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle
@@ -5,17 +6,23 @@ type GameObject = Phaser.GameObjects.Image | Phaser.GameObjects.Sprite | Phaser.
 export class ClickTweenScaleComponent implements Component {
 
 	private _gameObject: GameObject;
+	private _id: string;
 	private _tweenManager: Phaser.Tweens.TweenManager;
 	private _tweenEffect: Phaser.Tweens.Tween;
 	private _onCompleteTween?: Function;
 
-	constructor (tween: Phaser.Tweens.TweenManager, onCompleteTween?: Function) {
-		this._tweenManager = tween;
+	constructor (scene: Phaser.Scene, onCompleteTween?: Function) {
+		this._tweenManager = scene.tweens;
 		this._onCompleteTween = onCompleteTween;
 	}
 
 	init (go: GameObject): void {
+		this._id = go.name + "_" + shortUUID.generate();
 		this._gameObject = go;
+	}
+
+	getId (): string {
+		return this._id;
 	}
 
 	awake (): void {

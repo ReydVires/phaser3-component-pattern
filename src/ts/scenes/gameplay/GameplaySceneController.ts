@@ -1,10 +1,10 @@
 import { AudioController } from "../../modules/audio/AudioController";
-import { Audios } from "../../collections/AssetAudio";
 import { EventNames, GameplaySceneView } from "./GameplaySceneView";
 import { SceneInfo } from "../../info/SceneInfo";
 
 type OnCreateFinish = (...args: unknown[]) => void;
 type OnClickLogo = (counter: number) => void;
+type OnPlaySFX = (sfxKey: string) => void;
 
 export class GameplaySceneController extends Phaser.Scene {
 
@@ -19,9 +19,10 @@ export class GameplaySceneController extends Phaser.Scene {
 		this.view = new GameplaySceneView(this);
 		this.audioController = AudioController.getInstance();
 
-		this.onPlaySFXClick(() => this.audioController.playSFX(Audios.sfx_click.key));
+		this.onPlaySFX((sfxKey) => this.audioController.playSFX(sfxKey));
 		this.onClickRestart(() => {
 			this.scene.start(SceneInfo.GAMEPLAY.key);
+			console.log("Call restart!");
 		});
 		this.onClickLogo((counter) => {
 			console.log({ counter });
@@ -46,8 +47,8 @@ export class GameplaySceneController extends Phaser.Scene {
 		this.view.updateComponents(dt);
 	}
 
-	onPlaySFXClick (event: Function): void {
-		this.view.event.on(EventNames.onPlaySFXClick, event);
+	onPlaySFX (event: OnPlaySFX): void {
+		this.view.event.on(EventNames.onPlaySFX, event);
 	}
 
 	onClickLogo (event: OnClickLogo): void {
